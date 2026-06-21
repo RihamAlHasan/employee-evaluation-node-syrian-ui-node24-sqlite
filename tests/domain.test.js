@@ -54,3 +54,19 @@ function submitAll90(svc, user, cycleId, evaluateeId, type) {
   const scores = Object.fromEntries(started.items.map(i => [i.id, 90]));
   return svc.submitEvaluation(user, { cycleId, evaluateeId, type, scores, strengths: 'جيد', weaknesses: 'لا يوجد' });
 }
+
+test('shared manager and peer templates apply across departments without duplicate setup', async () => {
+  const { svc, ahmad, samer, orgManager, cycle } = await fixture();
+  assert.ok(svc.availableTargets(samer, cycle.id).some(t => t.type === TemplateType.EmployeeToManager && t.evaluatee.id === orgManager.id));
+  assert.ok(svc.availableTargets(ahmad, cycle.id).some(t => t.type === TemplateType.EmployeeToEmployee));
+});
+
+test('central manager can update direct manager and create department job titles', async () => {
+  const { svc, central, ahmad, director } = await fixture();
+  const title = svc.createJobTitle(central, { name: 'خبير موارد بشرية', departmentId: ahmad.departmentId });
+  assert.equal(title.name, 'خبير موارد بشرية');
+  const link = svc.lookups().departmentJobTitles.find(dj => dj.jobTitleId === title.id && dj.departmentId === ahmad.departmentId);
+  const updated = await svc.updateEmployee(central, ahmad.id, { ...ahmad, jobTitleId: title.id, departmentJobTitleId: link.id, managerId: director.id });
+  assert.equal(updated.managerId, director.id);
+  assert.equal(updated.jobTitleId, title.id);
+});
