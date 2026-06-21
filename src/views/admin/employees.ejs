@@ -1,1 +1,42 @@
-<h1 class="h4">إدارة الموظفين</h1><div class="card p-3 mb-4"><form method="post" class="row g-2"><div class="col-md-3"><input class="form-control" name="fullName" placeholder="الاسم" required></div><div class="col-md-2"><input class="form-control" name="nationalId" placeholder="الرقم الوطني" required></div><div class="col-md-2"><input class="form-control" name="employeeCode" placeholder="الرمز الوظيفي"></div><div class="col-md-2"><select class="form-select" name="role"><% Object.values(roles).forEach(r=>{ %><option value="<%= r %>"><%= r %></option><% }) %></select></div><div class="col-md-2"><select class="form-select" name="departmentId"><% lookups.departments.forEach(d=>{ %><option value="<%= d.id %>"><%= d.name %></option><% }) %></select></div><div class="col-md-2"><select class="form-select" name="jobTitleId"><% lookups.jobTitles.forEach(j=>{ %><option value="<%= j.id %>"><%= j.name %></option><% }) %></select></div><div class="col-md-2"><select class="form-select" name="departmentJobTitleId"><option value="">بدون ربط</option><% lookups.departmentJobTitles.forEach(dj=>{ %><option value="<%= dj.id %>">ربط #<%= dj.id %></option><% }) %></select></div><div class="col-md-2"><input class="form-control" name="managerId" placeholder="ID المدير"></div><div class="col-md-2"><button class="btn btn-primary w-100">إضافة</button></div></form></div><table class="table table-striped"><thead><tr><th>#</th><th>الاسم</th><th>الرقم الوطني</th><th>الدور</th><th>الدائرة</th><th>المدير</th></tr></thead><tbody><% employees.forEach(e=>{ %><tr><td><%= e.id %></td><td><%= e.fullName %></td><td><%= e.nationalId %></td><td><%= e.role %></td><td><%= e.departmentId %></td><td><%= e.managerId || '-' %></td></tr><% }) %></tbody></table>
+<%
+  const departmentName = (id) => lookups.departments.find(d => Number(d.id) === Number(id))?.name || '-';
+  const jobTitleName = (id) => lookups.jobTitles.find(j => Number(j.id) === Number(id))?.name || '-';
+  const linkLabel = (linkId) => {
+    const link = lookups.departmentJobTitles.find(dj => Number(dj.id) === Number(linkId));
+    if (!link) return 'بدون ربط بمسمى ضمن دائرة';
+    return `${departmentName(link.departmentId)} — ${jobTitleName(link.jobTitleId)}${link.isManagerTitle ? ' (مسمى إداري)' : ''}`;
+  };
+  const managerLabel = (manager) => `${manager.fullName} — ${jobTitleName(manager.jobTitleId)} / ${departmentName(manager.departmentId)}`;
+%>
+<h1 class="h4">إدارة الموظفين</h1>
+<div class="card p-3 mb-4">
+  <form method="post" class="row g-2">
+    <div class="col-md-3"><input class="form-control" name="fullName" placeholder="الاسم الكامل" required></div>
+    <div class="col-md-2"><input class="form-control" name="nationalId" placeholder="الرقم الوطني" required></div>
+    <div class="col-md-2"><input class="form-control" name="employeeCode" placeholder="الرمز الوظيفي"></div>
+    <div class="col-md-2"><select class="form-select" name="role" aria-label="الدور في النظام"><% Object.values(roles).forEach(r=>{ %><option value="<%= r %>"><%= r %></option><% }) %></select></div>
+    <div class="col-md-2"><select class="form-select" name="departmentId" aria-label="الدائرة"><% lookups.departments.forEach(d=>{ %><option value="<%= d.id %>"><%= d.name %></option><% }) %></select></div>
+    <div class="col-md-2"><select class="form-select" name="jobTitleId" aria-label="المسمى الوظيفي"><% lookups.jobTitles.forEach(j=>{ %><option value="<%= j.id %>"><%= j.name %></option><% }) %></select></div>
+    <div class="col-md-3">
+      <select class="form-select" name="departmentJobTitleId" aria-label="ربط الدائرة بالمسمى الوظيفي">
+        <option value="">بدون ربط بمسمى ضمن دائرة</option>
+        <% lookups.departmentJobTitles.forEach(dj=>{ %><option value="<%= dj.id %>"><%= linkLabel(dj.id) %></option><% }) %>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select class="form-select" name="managerId" aria-label="المدير المباشر">
+        <option value="">بدون مدير مباشر</option>
+        <% employees.forEach(m=>{ %><option value="<%= m.id %>"><%= managerLabel(m) %></option><% }) %>
+      </select>
+    </div>
+    <div class="col-md-2"><button class="btn btn-primary w-100">إضافة</button></div>
+  </form>
+</div>
+<table class="table table-striped">
+  <thead><tr><th>#</th><th>الاسم</th><th>الرقم الوطني</th><th>الدور</th><th>الدائرة</th><th>المسمى</th><th>المدير المباشر</th></tr></thead>
+  <tbody>
+    <% employees.forEach(e=>{ const manager = employees.find(m => Number(m.id) === Number(e.managerId)); %>
+      <tr><td><%= e.id %></td><td><%= e.fullName %></td><td><%= e.nationalId %></td><td><%= e.role %></td><td><%= departmentName(e.departmentId) %></td><td><%= jobTitleName(e.jobTitleId) %></td><td><%= manager ? manager.fullName : '-' %></td></tr>
+    <% }) %>
+  </tbody>
+</table>

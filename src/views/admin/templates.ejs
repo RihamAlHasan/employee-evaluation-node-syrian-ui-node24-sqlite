@@ -1,1 +1,37 @@
-<h1 class="h4">النماذج</h1><div class="card p-3 mb-4"><form method="post"><div class="row g-2"><div class="col-md-3"><input class="form-control" name="name" placeholder="اسم النموذج" required></div><div class="col-md-2"><select class="form-select" name="cycleId"><% cycles.forEach(c=>{ %><option value="<%= c.id %>"><%= c.name %></option><% }) %></select></div><div class="col-md-2"><select class="form-select" name="type"><% Object.values(types).forEach(t=>{ %><option value="<%= t %>"><%= t %></option><% }) %></select></div><div class="col-md-2"><select class="form-select" name="jobTitleId"><% lookups.jobTitles.forEach(j=>{ %><option value="<%= j.id %>"><%= j.name %></option><% }) %></select></div><div class="col-md-2"><select class="form-select" name="departmentJobTitleId"><option value="">كل الربوط</option><% lookups.departmentJobTitles.forEach(dj=>{ %><option value="<%= dj.id %>">ربط #<%= dj.id %></option><% }) %></select></div></div><hr><h2 class="h6">بنود سريعة</h2><div class="row g-2"><% for(let i=0;i<4;i++){ %><div class="col-md-3"><input class="form-control" name="itemName" placeholder="اسم البند"></div><div class="col-md-3"><input class="form-control" name="itemDescription" placeholder="الوصف"></div><div class="col-md-2"><input class="form-control" name="itemWeight" placeholder="الوزن" value="25"></div><div class="col-md-2"><select class="form-select" name="itemKind"><option value="behavior">سلوكي</option><option value="task">مهمة</option></select></div><% } %></div><button class="btn btn-primary mt-3">حفظ النموذج</button></form></div><% templates.forEach(t=>{ %><div class="card p-3 mb-2"><h2 class="h6"><%= t.name %> <span class="badge text-bg-secondary"><%= t.type %></span></h2><div class="text-muted">مهام <%= t.tasksSectionWeight %>% / سلوكيات <%= t.behaviorsSectionWeight %>%</div><ul class="mb-0"><% t.items.forEach(i=>{ %><li><%= i.isTask ? 'مهمة' : 'سلوكي' %> - <%= i.name %> (<%= i.weight %>%)</li><% }) %></ul></div><% }) %>
+<%
+  const departmentName = (id) => lookups.departments.find(d => Number(d.id) === Number(id))?.name || '-';
+  const jobTitleName = (id) => lookups.jobTitles.find(j => Number(j.id) === Number(id))?.name || '-';
+  const linkLabel = (linkId) => {
+    const link = lookups.departmentJobTitles.find(dj => Number(dj.id) === Number(linkId));
+    if (!link) return 'كل الدوائر لهذا المسمى';
+    return `${departmentName(link.departmentId)} — ${jobTitleName(link.jobTitleId)}${link.isManagerTitle ? ' (مسمى إداري)' : ''}`;
+  };
+%>
+<h1 class="h4">النماذج</h1>
+<div class="card p-3 mb-4">
+  <form method="post">
+    <div class="row g-2">
+      <div class="col-md-3"><input class="form-control" name="name" placeholder="اسم النموذج" required></div>
+      <div class="col-md-2"><select class="form-select" name="cycleId" aria-label="دورة التقييم"><% cycles.forEach(c=>{ %><option value="<%= c.id %>"><%= c.name %></option><% }) %></select></div>
+      <div class="col-md-2"><select class="form-select" name="type" aria-label="نوع النموذج"><% Object.values(types).forEach(t=>{ %><option value="<%= t %>"><%= t %></option><% }) %></select></div>
+      <div class="col-md-2"><select class="form-select" name="jobTitleId" aria-label="المسمى الوظيفي المستهدف"><% lookups.jobTitles.forEach(j=>{ %><option value="<%= j.id %>"><%= j.name %></option><% }) %></select></div>
+      <div class="col-md-3">
+        <select class="form-select" name="departmentJobTitleId" aria-label="الدائرة والمسمى المستهدفان">
+          <option value="">كل الدوائر لهذا المسمى</option>
+          <% lookups.departmentJobTitles.forEach(dj=>{ %><option value="<%= dj.id %>"><%= linkLabel(dj.id) %></option><% }) %>
+        </select>
+      </div>
+    </div>
+    <hr><h2 class="h6">بنود سريعة</h2>
+    <div class="row g-2"><% for(let i=0;i<4;i++){ %><div class="col-md-3"><input class="form-control" name="itemName" placeholder="اسم البند"></div><div class="col-md-3"><input class="form-control" name="itemDescription" placeholder="الوصف"></div><div class="col-md-2"><input class="form-control" name="itemWeight" placeholder="الوزن" value="25"></div><div class="col-md-2"><select class="form-select" name="itemKind"><option value="behavior">سلوكي</option><option value="task">مهمة</option></select></div><% } %></div>
+    <button class="btn btn-primary mt-3">حفظ النموذج</button>
+  </form>
+</div>
+<% templates.forEach(t=>{ %>
+  <div class="card p-3 mb-2">
+    <h2 class="h6"><%= t.name %> <span class="badge text-bg-secondary"><%= t.type %></span></h2>
+    <div class="text-muted">المسمى: <%= jobTitleName(t.jobTitleId) %> / النطاق: <%= linkLabel(t.departmentJobTitleId) %></div>
+    <div class="text-muted">مهام <%= t.tasksSectionWeight %>% / سلوكيات <%= t.behaviorsSectionWeight %>%</div>
+    <ul class="mb-0"><% t.items.forEach(i=>{ %><li><%= i.isTask ? 'مهمة' : 'سلوكي' %> - <%= i.name %> (<%= i.weight %>%)</li><% }) %></ul>
+  </div>
+<% }) %>
