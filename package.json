@@ -1,0 +1,23 @@
+{
+  "name": "employee-evaluation-node-syrian-ui",
+  "version": "1.0.1",
+  "description": "Node.js employee evaluation system with native Node 24 SQLite and Syrian visual identity UI.",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test tests/*.test.js",
+    "seed": "node src/cli.js seed"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-ejs-layouts": "^2.5.1",
+    "express-session": "^1.18.1",
+    "method-override": "^3.0.0"
+  },
+  "devDependencies": {}
+}

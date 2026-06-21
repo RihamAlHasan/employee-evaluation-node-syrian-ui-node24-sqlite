@@ -1,0 +1,1 @@
+<h1 class="h4">سجل النشاط</h1><table class="table"><thead><tr><th>التاريخ</th><th>المستخدم</th><th>العملية</th><th>الوصف</th></tr></thead><tbody><% logs.forEach(l=>{ %><tr><td><%= l.createdAt %></td><td><%= l.userName %></td><td><%= l.actionType %></td><td><%= l.description %></td></tr><% }) %></tbody></table>

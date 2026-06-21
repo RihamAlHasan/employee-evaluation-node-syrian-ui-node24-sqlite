@@ -1,0 +1,30 @@
+<div class="hero">
+  <div class="eyebrow">لوحة العمل</div>
+  <h1>مرحباً بك في نظام تقييم الأداء</h1>
+  <p>واجهة Node.js/SQLite بتصميم رسمي حديث، مستوحاة مباشرة من ألوان الهوية البصرية السورية الجديدة.</p>
+</div>
+<div class="row g-3">
+  <div class="col-md-3"><div class="stat-card"><span>الموظفون</span><b><%= data.employeesCount %></b></div></div>
+  <div class="col-md-3"><div class="stat-card"><span>النماذج</span><b><%= data.templatesCount %></b></div></div>
+  <div class="col-md-3"><div class="stat-card"><span>التقييمات المرسلة</span><b><%= data.processedCount %></b></div></div>
+  <div class="col-md-3"><div class="stat-card"><span>الدورة النشطة</span><b class="fs-5 mt-2"><%= data.cycle ? data.cycle.name : 'لا يوجد' %></b></div></div>
+</div>
+<div class="row g-4 mt-2">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="section-title h5 mb-0">المهام المتاحة</h2><span class="badge text-bg-light">قابلة للتعبئة</span></div>
+      <% if (!data.pendingTargets.length) { %><p class="text-muted mb-0">لا توجد نماذج متاحة حالياً.</p><% } else { %>
+      <div class="table-responsive"><table class="table"><thead><tr><th>المستفيد</th><th>نوع التقييم</th><th>الحالة</th><th></th></tr></thead><tbody><% data.pendingTargets.forEach(t=>{ %><tr><td><b><%= t.evaluatee.fullName %></b></td><td><%= t.label %></td><td><span class="badge <%= t.done ? 'text-bg-success' : 'text-bg-warning' %>"><%= t.done ? 'مرسل' : 'بانتظار التعبئة' %></span></td><td><% if(!t.done){ %><a class="btn btn-sm btn-primary" href="/evaluations/start?cycleId=<%= data.cycle.id %>&evaluateeId=<%= t.evaluatee.id %>&type=<%= t.type %>">تعبئة</a><% } %></td></tr><% }) %></tbody></table></div>
+      <% } %>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card">
+      <h2 class="section-title h5">اختصارات</h2>
+      <div class="action-grid">
+        <a class="action-card" href="/evaluations"><b>تقييماتي</b><small class="d-block text-muted mt-1">عرض النماذج المتاحة</small></a>
+        <a class="action-card" href="/reports/me"><b>نتيجتي</b><small class="d-block text-muted mt-1">بعد الاعتماد المركزي</small></a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><%= title || 'نظام تقييم الأداء' %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/">
+        <span class="brand-mark">ت</span>
+        <span><b>تقييم الأداء</b><small>منصة حكومية داخلية</small></span>
+      </a>
+      <% if (user) { %>
+        <nav class="side-nav">
+          <a href="/" class="nav-pill">لوحة العمل</a>
+          <a href="/evaluations" class="nav-pill">تقييماتي</a>
+          <a href="/reports/me" class="nav-pill">نتيجتي</a>
+          <% if (['Admin','CentralEvaluationManager','EntityEvaluationManager'].includes(user.role)) { %>
+            <a href="/admin/employees" class="nav-pill">إدارة الموظفين</a>
+            <a href="/admin/cycles" class="nav-pill">الدورات</a>
+            <a href="/admin/templates" class="nav-pill">النماذج</a>
+            <a href="/reports" class="nav-pill">التقارير</a>
+            <a href="/admin/logs" class="nav-pill">سجل العمليات</a>
+          <% } %>
+        </nav>
+      <% } %>
+      <div class="identity-card">
+        <span>ألوان الهوية</span>
+        <div class="palette"><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+    </aside>
+    <section class="content-area">
+      <header class="topbar">
+        <div>
+          <div class="overline">Syrian Visual Identity</div>
+          <h1><%= title || 'نظام تقييم الأداء' %></h1>
+        </div>
+        <% if (user) { %>
+          <div class="user-chip">
+            <span class="avatar"><%= (user.fullName || 'ر').slice(0,1) %></span>
+            <div><b><%= user.fullName %></b><small><%= user.role %></small></div>
+            <form method="post" action="/logout"><button class="btn btn-sm btn-ghost">خروج</button></form>
+          </div>
+        <% } %>
+      </header>
+      <main class="page-container">
+        <% if (flash) { %><div class="alert alert-<%= flash.type %> soft-alert"><%= flash.message %></div><% } %>
+        <%- body %>
+      </main>
+    </section>
+  </div>
+</body>
+</html>
