@@ -1,1 +1,25 @@
-<h1 class="h4"><%= template.name %></h1><p class="text-muted">المستفيد: <b><%= evaluatee.fullName %></b></p><form method="post" action="/evaluations/submit" class="card p-3"><input type="hidden" name="cycleId" value="<%= cycle.id %>"><input type="hidden" name="evaluateeId" value="<%= evaluatee.id %>"><input type="hidden" name="type" value="<%= type %>"><table class="table"><thead><tr><th>البند</th><th>النوع</th><th>الوزن</th><th>العلامة</th></tr></thead><tbody><% items.forEach(i=>{ %><tr><td><b><%= i.name %></b><div class="small text-muted"><%= i.description %></div></td><td><%= i.isTask ? 'مهام' : 'سلوكيات' %></td><td><%= i.weight %>%</td><td><input class="form-control" type="number" min="0" max="100" name="score_<%= i.id %>" value="90" required></td></tr><% }) %></tbody></table><label class="form-label">إنجازات ونقاط تميز</label><textarea class="form-control mb-2" name="strengths"></textarea><label class="form-label">نقاط تحتاج تحسين</label><textarea class="form-control mb-2" name="weaknesses"></textarea><label class="form-label">ملاحظات</label><textarea class="form-control mb-3" name="notes"></textarea><button class="btn btn-primary">إرسال وقفل التقييم</button></form>
+<%
+  const showRecommendations = ['ManagerToEmployee','DirectorGeneralToManager','ManagerToProbationEmployee'].includes(type);
+%>
+<h1 class="h4"><%= template.name %></h1>
+<p class="text-muted">المستفيد: <b><%= evaluatee.fullName %></b></p>
+<form method="post" action="/evaluations/submit" class="card p-3">
+  <input type="hidden" name="cycleId" value="<%= cycle.id %>">
+  <input type="hidden" name="evaluateeId" value="<%= evaluatee.id %>">
+  <input type="hidden" name="type" value="<%= type %>">
+  <table class="table align-middle">
+    <thead><tr><th>البند</th><th>النوع</th><th>الوزن</th><th>العلامة</th></tr></thead>
+    <tbody><% items.forEach(i=>{ %><tr><td><b><%= i.name %></b><div class="small text-muted text-wrap"><%= i.description %></div></td><td><%= i.isTask ? 'مهام' : 'سلوكيات' %></td><td><%= i.weight %>%</td><td><input class="form-control" type="number" min="0" max="100" name="score_<%= i.id %>" placeholder="0-100" required></td></tr><% }) %></tbody>
+  </table>
+  <label class="form-label">نقاط التميز</label>
+  <textarea class="form-control mb-2" name="strengths" rows="3"></textarea>
+  <label class="form-label">أهم المجالات التي تحتاج تطويراً</label>
+  <textarea class="form-control mb-2" name="weaknesses" rows="3"></textarea>
+  <label class="form-label">الملاحظات</label>
+  <textarea class="form-control mb-2" name="notes" rows="3"></textarea>
+  <% if (showRecommendations) { %>
+    <label class="form-label">التوصيات</label>
+    <textarea class="form-control mb-3" name="recommendations" rows="3"></textarea>
+  <% } %>
+  <div class="d-flex gap-2"><button class="btn btn-primary">إرسال وقفل التقييم</button><a class="btn btn-outline-secondary" href="/">العودة إلى الرئيسية</a></div>
+</form>
