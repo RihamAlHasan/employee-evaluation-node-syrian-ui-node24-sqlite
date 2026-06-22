@@ -10,21 +10,16 @@
 %>
 <h1 class="h4">إدارة الموظفين</h1>
 <div class="card p-3 mb-4">
-  <form method="post" class="row g-2">
+  <form method="post" class="row g-2 js-dependent-form">
     <div class="col-md-3"><input class="form-control" name="fullName" placeholder="الاسم الكامل" required></div>
     <div class="col-md-2"><input class="form-control" name="nationalId" placeholder="الرقم الوطني" required></div>
     <div class="col-md-2"><input class="form-control" name="employeeCode" placeholder="الرمز الوظيفي"></div>
     <div class="col-md-2"><select class="form-select" name="role" aria-label="الدور في النظام"><% Object.values(roles).forEach(r=>{ %><option value="<%= r %>"><%= r %></option><% }) %></select></div>
-    <div class="col-md-2"><select class="form-select" name="departmentId" aria-label="الدائرة"><% lookups.departments.forEach(d=>{ %><option value="<%= d.id %>"><%= d.name %></option><% }) %></select></div>
-    <div class="col-md-2"><select class="form-select" name="jobTitleId" aria-label="المسمى الوظيفي"><% lookups.jobTitles.forEach(j=>{ %><option value="<%= j.id %>"><%= j.name %></option><% }) %></select></div>
+    <div class="col-md-3"><select class="form-select js-department" name="departmentId" aria-label="الدائرة"><% lookups.departments.forEach(d=>{ %><option value="<%= d.id %>"><%= d.name %></option><% }) %></select></div>
+    <div class="col-md-3"><select class="form-select js-job-title" name="jobTitleId" aria-label="المسمى الوظيفي"></select></div>
+    <input type="hidden" class="js-department-job-title" name="departmentJobTitleId">
     <div class="col-md-3">
-      <select class="form-select" name="departmentJobTitleId" aria-label="ربط الدائرة بالمسمى الوظيفي">
-        <option value="">بدون ربط بمسمى ضمن دائرة</option>
-        <% lookups.departmentJobTitles.forEach(dj=>{ %><option value="<%= dj.id %>"><%= linkLabel(dj.id) %></option><% }) %>
-      </select>
-    </div>
-    <div class="col-md-3">
-      <select class="form-select" name="managerId" aria-label="المدير المباشر">
+      <select class="form-select js-manager" name="managerId" aria-label="المدير المباشر">
         <option value="">بدون مدير مباشر</option>
         <% employees.forEach(m=>{ %><option value="<%= m.id %>"><%= managerLabel(m) %></option><% }) %>
       </select>
@@ -40,3 +35,7 @@
     <% }) %>
   </tbody>
 </table>
+<script>
+  window.evalLookups = <%- JSON.stringify({ ...lookups, employees }) %>;
+</script>
+<script src="/js/admin-dependent-selects.js"></script>

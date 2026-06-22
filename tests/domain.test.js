@@ -88,3 +88,13 @@ test('published cycles and approved results cannot be published or approved twic
   assert.equal(approved.resultStatus, EvaluationStatus.Approved);
   assert.throws(() => svc.approveResult(central, cycle.id, ahmad.id, {}), /مسبق/);
 });
+
+test('reference departments and job titles are seeded and linked', async () => {
+  const { svc } = await fixture();
+  const lookups = svc.lookups();
+  const department = lookups.departments.find(d => d.name === 'إدارة البرامج والمشاريع - مشروع العدالة الوظيفية');
+  assert.ok(department);
+  const title = lookups.jobTitles.find(j => j.name === 'مسؤول التحقق والوثائق');
+  assert.ok(title);
+  assert.ok(lookups.departmentJobTitles.some(dj => dj.departmentId === department.id && dj.jobTitleId === title.id));
+});
