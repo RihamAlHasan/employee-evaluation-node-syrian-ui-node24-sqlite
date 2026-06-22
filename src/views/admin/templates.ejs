@@ -1,6 +1,8 @@
 <%
   const departmentName = (id) => lookups.departments.find(d => Number(d.id) === Number(id))?.name || '-';
   const jobTitleName = (id) => lookups.jobTitles.find(j => Number(j.id) === Number(id))?.name || '-';
+  const cycleName = (id) => cycles.find(c => Number(c.id) === Number(id))?.name || '-';
+  const isPublished = (id) => !!cycles.find(c => Number(c.id) === Number(id))?.isPublished;
   const linkLabel = (linkId) => {
     const link = lookups.departmentJobTitles.find(dj => Number(dj.id) === Number(linkId));
     if (!link) return 'كل الدوائر لهذا المسمى';
@@ -9,29 +11,52 @@
 %>
 <h1 class="h4">النماذج</h1>
 <div class="card p-3 mb-4">
-  <form method="post">
+  <form method="post" class="js-template-form">
     <div class="row g-2">
       <div class="col-md-3"><input class="form-control" name="name" placeholder="اسم النموذج" required></div>
       <div class="col-md-2"><select class="form-select" name="cycleId" aria-label="دورة التقييم"><% cycles.forEach(c=>{ %><option value="<%= c.id %>"><%= c.name %></option><% }) %></select></div>
       <div class="col-md-2"><select class="form-select" name="type" aria-label="نوع النموذج"><% Object.values(types).forEach(t=>{ %><option value="<%= t %>"><%= t %></option><% }) %></select></div>
-      <div class="col-md-2"><select class="form-select" name="jobTitleId" aria-label="المسمى الوظيفي المستهدف"><% lookups.jobTitles.forEach(j=>{ %><option value="<%= j.id %>"><%= j.name %></option><% }) %></select></div>
-      <div class="col-md-3">
-        <select class="form-select" name="departmentJobTitleId" aria-label="الدائرة والمسمى المستهدفان">
-          <option value="">كل الدوائر لهذا المسمى</option>
-          <% lookups.departmentJobTitles.forEach(dj=>{ %><option value="<%= dj.id %>"><%= linkLabel(dj.id) %></option><% }) %>
-        </select>
-      </div>
+      <div class="col-md-2"><select class="form-select js-template-department" aria-label="الدائرة المستهدفة"><option value="">كل الدوائر</option><% lookups.departments.forEach(d=>{ %><option value="<%= d.id %>"><%= d.name %></option><% }) %></select></div>
+      <div class="col-md-2"><select class="form-select js-template-job" name="jobTitleId" aria-label="المسمى الوظيفي المستهدف"></select></div>
+      <input type="hidden" class="js-template-link" name="departmentJobTitleId">
+      <div class="col-md-12"><select class="form-select js-template-targets" name="targetEmployeeIds" multiple aria-label="الأسماء المستهدفة"></select><small class="text-muted">اختياري: اختر الدائرة ليتم عرض مسمياتها، ثم يمكن استهداف أكثر من اسم مطابق للنموذج.</small></div>
     </div>
     <hr><h2 class="h6">بنود سريعة</h2>
     <div class="row g-2"><% for(let i=0;i<4;i++){ %><div class="col-md-3"><input class="form-control" name="itemName" placeholder="اسم البند"></div><div class="col-md-3"><input class="form-control" name="itemDescription" placeholder="الوصف"></div><div class="col-md-2"><input class="form-control" name="itemWeight" placeholder="الوزن" value="25"></div><div class="col-md-2"><select class="form-select" name="itemKind"><option value="behavior">سلوكي</option><option value="task">مهمة</option></select></div><% } %></div>
     <button class="btn btn-primary mt-3">حفظ النموذج</button>
   </form>
 </div>
-<% templates.forEach(t=>{ %>
+<% templates.forEach(t=>{ const published = isPublished(t.cycleId); const targets = Array.isArray(t.targetEmployeeIds) ? t.targetEmployeeIds : []; %>
   <div class="card p-3 mb-2">
-    <h2 class="h6"><%= t.name %> <span class="badge text-bg-secondary"><%= t.type %></span></h2>
-    <div class="text-muted">المسمى: <%= jobTitleName(t.jobTitleId) %> / النطاق: <%= linkLabel(t.departmentJobTitleId) %></div>
-    <div class="text-muted">مهام <%= t.tasksSectionWeight %>% / سلوكيات <%= t.behaviorsSectionWeight %>%</div>
+    <div class="d-flex justify-content-between align-items-start gap-2">
+      <div>
+        <h2 class="h6"><%= t.name %> <span class="badge text-bg-secondary"><%= t.type %></span></h2>
+        <div class="text-muted">الدورة: <%= cycleName(t.cycleId) %> / المسمى: <%= jobTitleName(t.jobTitleId) %> / النطاق: <%= linkLabel(t.departmentJobTitleId) %></div>
+        <div class="text-muted">الأسماء المستهدفة: <%= targets.length ? targets.map(id => employees.find(e => Number(e.id) === Number(id))?.fullName).filter(Boolean).join('، ') : 'كل الموظفين المطابقين' %></div>
+        <div class="text-muted">مهام <%= t.tasksSectionWeight %>% / سلوكيات <%= t.behaviorsSectionWeight %>%</div>
+      </div>
+      <% if (!published) { %><button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#template-<%= t.id %>" type="button">تعديل</button><% } else { %><span class="badge text-bg-secondary">مقفلة بعد النشر</span><% } %>
+    </div>
     <ul class="mb-0"><% t.items.forEach(i=>{ %><li><%= i.isTask ? 'مهمة' : 'سلوكي' %> - <%= i.name %> (<%= i.weight %>%)</li><% }) %></ul>
+    <% if (!published) { %>
+      <div class="collapse mt-3" id="template-<%= t.id %>">
+        <form method="post" action="/admin/templates/<%= t.id %>/update" class="row g-2 js-template-form" data-department-job-title="<%= t.departmentJobTitleId || '' %>" data-job-title="<%= t.jobTitleId || '' %>" data-targets="<%= targets.join(',') %>">
+          <div class="col-md-3"><input class="form-control" name="name" value="<%= t.name %>" required></div>
+          <div class="col-md-2"><select class="form-select" name="type"><% Object.values(types).forEach(type=>{ %><option value="<%= type %>" <%= type===t.type?'selected':'' %>><%= type %></option><% }) %></select></div>
+          <div class="col-md-2"><select class="form-select js-template-department"><option value="">كل الدوائر</option><% lookups.departments.forEach(d=>{ %><option value="<%= d.id %>"><%= d.name %></option><% }) %></select></div>
+          <div class="col-md-2"><select class="form-select js-template-job" name="jobTitleId"></select></div>
+          <input type="hidden" class="js-template-link" name="departmentJobTitleId">
+          <div class="col-md-1"><input class="form-control" name="tasksSectionWeight" value="<%= t.tasksSectionWeight %>"></div><div class="col-md-1"><input class="form-control" name="behaviorsSectionWeight" value="<%= t.behaviorsSectionWeight %>"></div>
+          <div class="col-md-12"><select class="form-select js-template-targets" name="targetEmployeeIds" multiple></select></div>
+          <% for(let i=0;i<Math.max(4,t.items.length);i++){ const item=t.items[i]||{}; %><div class="col-md-3"><input class="form-control" name="itemName" placeholder="اسم البند" value="<%= item.name || '' %>"></div><div class="col-md-3"><input class="form-control" name="itemDescription" placeholder="الوصف" value="<%= item.description || '' %>"></div><div class="col-md-2"><input class="form-control" name="itemWeight" placeholder="الوزن" value="<%= item.weight || 25 %>"></div><div class="col-md-2"><select class="form-select" name="itemKind"><option value="behavior" <%= !item.isTask?'selected':'' %>>سلوكي</option><option value="task" <%= item.isTask?'selected':'' %>>مهمة</option></select></div><% } %>
+          <div class="col-md-2"><button class="btn btn-success w-100">حفظ التعديل</button></div>
+        </form>
+      </div>
+    <% } %>
   </div>
 <% }) %>
+
+<script>
+  window.templateLookups = <%- JSON.stringify({ ...lookups, employees }) %>;
+</script>
+<script src="/js/template-dependent-selects.js"></script>

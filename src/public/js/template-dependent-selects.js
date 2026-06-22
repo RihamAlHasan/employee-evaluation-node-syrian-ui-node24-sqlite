@@ -26,6 +26,6 @@
   document.querySelectorAll('.js-template-form').forEach(form => {
     fill(form);
     form.querySelector('.js-template-department')?.addEventListener('change', () => { form.dataset.departmentJobTitle = ''; form.dataset.jobTitle = ''; form.dataset.targets = ''; fill(form); });
-    form.querySelector('.js-template-job')?.addEventListener('change', () => { form.dataset.targets = ''; const link = form.querySelector('.js-template-link'); if (link) link.value = form.querySelector('.js-template-job').selectedOptions[0]?.dataset.link || ''; fill(form); });
+    form.querySelector('.js-template-job')?.addEventListener('change', () => { const job = form.querySelector('.js-template-job'); form.dataset.jobTitle = job.value; form.dataset.targets = ''; const link = form.querySelector('.js-template-link'); if (link) link.value = job.selectedOptions[0]?.dataset.link || ''; fill(form); });
   });
 })();

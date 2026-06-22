@@ -38,6 +38,30 @@ function createEvaluationService(store = new InMemoryStore()) {
     return bcrypt ? bcrypt.compare(password, hashValue) : false;
   }
 
+  const referenceDepartmentJobs = {
+    'مركز تنمية الموارد البشرية': ['رئيس دائرة مركز تنمية الموارد البشرية', 'ميسر تدريب', 'مصمم برامج تدريبية', 'منسق تدريب', 'محلل بيانات', 'منسق شؤون مدربين ومتدربين', 'رئيس شعبة البرامج', 'رئيس شعبة التنفيذ'],
+    'دائرة سجلات العاملين': ['/محلل إداري ثاني /رئيس دائرة النافذة في حمص', 'رئيس دائرة سجلات العاملين', 'مسؤول التواصل فريق دعم الخدمة', 'مدقق ومدخل بيانات', 'رئيس نافذة سجلات العاملين', 'استقبال', 'مشرف على فريق دعم الخدمة', 'مدقق مرتجعات'],
+    'دائرة الموارد البشرية': ['رئيس دائرة الموارد البشرية', 'موظف موارد بشرية', 'مسؤول الاستقطاب والتعيين', 'مسؤول شؤون الموظفين', 'مسؤول منصة بناة'],
+    'دائرة بناء القدرات': ['منسق دائرة بناء قدرات', 'محلل أثر التدريب', 'محلل احتياج تدريبي'],
+    'دائرة التنظيم المؤسساتي': ['رئيس دائرة التنظيم المؤسساتي', 'محلل عمليات', 'مراقب جودة الإجراءات', 'مطور تنظيمي', 'مصمم إجراءات'],
+    'إدارة الدعم التنفيذي': ['رئيس دائرة الدعم التنفيذي', 'أمين مستودع', 'محاسب', 'عامل بوفيه', 'لوجستي', 'حارس', 'سائق', 'مصمم جرافيك'],
+    'إدارة البرامج والمشاريع - مشروع العدالة الوظيفية': ['قائد فريق فرعي', 'منسق ميداني فرعي', 'مسؤول بيانات فرعي', 'موظف دعم تقني فرعي', 'مسؤول التحقق والوثائق', 'مدخل بيانات/ فني اجهزة البصمة', 'رئيس مشروع العدالة الوظيفية']
+  };
+
+  function ensureReferenceData() {
+    const entity = s.all('entities')[0] || s.insert('entities', { name: 'مديرية التنمية الإدارية - حمص', isActive: true });
+    for (const [departmentName, titles] of Object.entries(referenceDepartmentJobs)) {
+      let department = s.all('departments').find(d => d.name === departmentName);
+      if (!department) department = s.insert('departments', { name: departmentName, entityId: entity.id, isActive: true });
+      for (const titleName of titles) {
+        let jobTitle = s.all('jobTitles').find(j => j.name === titleName);
+        if (!jobTitle) jobTitle = s.insert('jobTitles', { name: titleName, userName: '', departmentId: department.id, isActive: true });
+        const linked = s.all('departmentJobTitles').some(dj => Number(dj.departmentId) === Number(department.id) && Number(dj.jobTitleId) === Number(jobTitle.id));
+        if (!linked) s.insert('departmentJobTitles', { departmentId: department.id, jobTitleId: jobTitle.id, isManagerTitle: /^(رئيس|قائد|مشرف)/.test(titleName), isActive: true });
+      }
+    }
+  }
+
   return {
     store: s,
     seedDemo,
@@ -68,8 +92,10 @@ function createEvaluationService(store = new InMemoryStore()) {
     submitGrievance,
     reviewGrievance,
     reportRows,
-    lookups
+    lookups,
+    ensureReferenceData
   };
+
 
   async function seedDemo() {
     s.reset();
@@ -86,6 +112,7 @@ function createEvaluationService(store = new InMemoryStore()) {
     const djtOrgManager = s.insert('departmentJobTitles', { departmentId: org.id, jobTitleId: jtManager.id, isManagerTitle: true, isActive: true });
     const djtHrEmployee = s.insert('departmentJobTitles', { departmentId: hr.id, jobTitleId: jtEmployee.id, isManagerTitle: false, isActive: true });
     const djtOrgEmployee = s.insert('departmentJobTitles', { departmentId: org.id, jobTitleId: jtEmployee.id, isManagerTitle: false, isActive: true });
+    ensureReferenceData();
     const passwordHash = await hash('123456');
     const central = s.insert('employees', emp('رهام - مسؤول التقييم المركزي', '11000000001', 'C001', UserRole.CentralEvaluationManager, hr, jtCentral, djtCentral, null, passwordHash));
     const director = s.insert('employees', emp('مدير المديرية', '12000000001', 'D001', UserRole.DirectorGeneral, hr, jtDirector, djtDirector, null, passwordHash));
@@ -183,12 +210,20 @@ function createEvaluationService(store = new InMemoryStore()) {
     assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]);
     const existing = s.findById('cycles', cycleId);
     if (!existing) throw new Error('الدورة غير موجودة');
-    if (existing.isPublished) throw new Error('لا يمكن تعديل تواريخ الدورة بعد النشر، يمكن إيقافها يدوياً فقط');
-    const row = s.update('cycles', cycleId, { name: data.name, startDate: data.startDate, endDate: data.endDate, grievanceStartDate: data.grievanceStartDate || null, grievanceEndDate: data.grievanceEndDate || null, variationRate: Number(data.variationRate || existing.variationRate || 20), resultComment: data.resultComment || existing.resultComment || '' });
+    if (existing.isPublished && data.startDate && data.startDate !== existing.startDate) throw new Error('لا يمكن تعديل تاريخ بدء الدورة بعد النشر');
+    const row = s.update('cycles', cycleId, { name: data.name, startDate: existing.isPublished ? existing.startDate : data.startDate, endDate: data.endDate, grievanceStartDate: data.grievanceStartDate || null, grievanceEndDate: data.grievanceEndDate || null, variationRate: Number(data.variationRate || existing.variationRate || 20), resultComment: data.resultComment || existing.resultComment || '' });
     s.log(user, 'UpdateCycle', `تعديل دورة: ${row.name}`, 'EvaluationCycle', row.id, row);
     return row;
   }
-  function publishCycle(user, cycleId) { assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]); const row = s.update('cycles', cycleId, { isPublished: true, isStarted: true, isActive: true }); s.log(user, 'PublishCycle', `نشر دورة: ${row.name}`, 'EvaluationCycle', row.id, row); return row; }
+  function publishCycle(user, cycleId) {
+    assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]);
+    const existing = s.findById('cycles', cycleId);
+    if (!existing) throw new Error('الدورة غير موجودة');
+    if (existing.isPublished) throw new Error('الدورة منشورة مسبقاً');
+    const row = s.update('cycles', cycleId, { isPublished: true, isStarted: true, isActive: true });
+    s.log(user, 'PublishCycle', `نشر دورة: ${row.name}`, 'EvaluationCycle', row.id, row);
+    return row;
+  }
   function closeCycle(user, cycleId) { assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]); const row = s.update('cycles', cycleId, { isActive: false }); s.log(user, 'CloseCycle', `إغلاق دورة: ${row.name}`, 'EvaluationCycle', row.id, row); return row; }
   function createTemplate(user, data) {
     assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]);
@@ -307,6 +342,7 @@ function createEvaluationService(store = new InMemoryStore()) {
     assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]);
     const current = resultForEmployee(user, cycleId, employeeId);
     const existing = s.all('resultAdjustments').find(r => r.cycleId == cycleId && r.employeeId == employeeId);
+    if (existing?.resultStatus === EvaluationStatus.Approved) throw new Error('تم اعتماد هذه النتيجة مسبقاً');
     const patch = { adjustedFinalScore: data.adjustedFinalScore !== undefined && data.adjustedFinalScore !== '' ? Number(data.adjustedFinalScore) : current.finalScore, adjustmentNotes: data.adjustmentNotes || '', strengthsHighlights: data.strengthsHighlights || '', improvementPoints: data.improvementPoints || '', resultStatus: EvaluationStatus.Approved, updatedById: user.id, updatedAt: new Date().toISOString() };
     const row = existing ? s.update('resultAdjustments', existing.id, patch) : s.insert('resultAdjustments', { cycleId: Number(cycleId), employeeId: Number(employeeId), createdAt: new Date().toISOString(), ...patch });
     s.log(user, 'ApproveResult', `اعتماد نتيجة ${current.employee.fullName}`, 'EvaluationResultAdjustment', row.id, row);
