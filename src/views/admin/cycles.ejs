@@ -21,10 +21,10 @@
       <td>
         <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#cycle-<%= c.id %>" type="button">تعديل التواريخ</button>
         <% if (!c.isPublished) { %><form method="post" action="/admin/cycles/<%= c.id %>/publish" class="d-inline"><button class="btn btn-sm btn-success">نشر</button></form><% } else { %><button class="btn btn-sm btn-secondary" disabled>منشورة</button><% } %>
-        <% if (c.isActive) { %><form method="post" action="/admin/cycles/<%= c.id %>/close" class="d-inline"><button class="btn btn-sm btn-outline-danger">إغلاق</button></form><% } else { %><button class="btn btn-sm btn-outline-secondary" disabled>مغلقة</button><% } %>
+        <form method="post" action="/admin/cycles/<%= c.id %>/close" class="d-inline"><button class="btn btn-sm btn-outline-danger">إيقاف يدوي</button></form>
       </td>
     </tr>
-      <tr class="collapse" id="cycle-<%= c.id %>"><td colspan="4">
+      <tr class="collapse" id="cycle-<%= c.id %>"><td colspan="5">
         <form method="post" action="/admin/cycles/<%= c.id %>/update" class="row g-2">
           <div class="col-md-3"><input class="form-control" name="name" value="<%= c.name %>" required></div>
           <div class="col-md-2"><input class="form-control" type="date" name="startDate" value="<%= c.startDate %>" <%= c.isPublished ? 'readonly' : 'required' %>></div>

@@ -1,44 +1,34 @@
-<%
-  const statusLabel = (status) => ({ Pending: 'قيد المعالجة', Processed: 'تمت المعالجة', Approved: 'معتمدة', AppealInProgress: 'قيد معالجة التظلم', Reverted: 'معادة' })[status] || 'قيد المعالجة';
-%>
 <h1 class="h4">التقارير واعتماد النتائج</h1>
 <form class="mb-3">
   <select name="cycleId" class="form-select w-auto d-inline"><% cycles.forEach(c=>{ %><option value="<%= c.id %>" <%= String(c.id)===String(cycleId)?'selected':'' %>><%= c.name %></option><% }) %></select>
   <button class="btn btn-outline-primary">عرض</button>
 </form>
-<form id="bulk-result-form" method="post" action="/reports/bulk">
+<form id="bulk-approve-form" method="post" action="/reports/approve-bulk">
   <input type="hidden" name="cycleId" value="<%= cycleId %>">
 </form>
-<div class="d-flex justify-content-between align-items-center mb-2 gap-2 flex-wrap">
-  <p class="text-muted mb-0">يمكن تحديد أكثر من نتيجة بحالة قيد/تمت المعالجة لتنفيذ معالجة جماعية أو اعتماد جماعي.</p>
-  <div class="btn-group">
-    <button class="btn btn-outline-success btn-sm" name="action" value="process" form="bulk-result-form">تمت معالجة المحدد</button>
-    <button class="btn btn-success btn-sm" name="action" value="approve" form="bulk-result-form">اعتماد المحدد</button>
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <p class="text-muted mb-0">يمكن تحديد أكثر من نتيجة تحتوي على تقييمات بحالة تمت المعالجة وغير معتمدة لاعتمادها دفعة واحدة.</p>
+    <button class="btn btn-success btn-sm" form="bulk-approve-form">اعتماد النتائج المحددة</button>
   </div>
-</div>
-<table class="table table-striped align-middle">
-  <thead><tr><th>تحديد</th><th>الموظف</th><th>مدير</th><th>ذاتي</th><th>زملاء</th><th>النهائية</th><th>الحالة</th><th>إجراءات</th></tr></thead>
-  <tbody><% rows.forEach(r=>{ const status = r.adjustment?.resultStatus || 'Pending'; const approved = status === 'Approved'; const selectable = !approved && r.evaluations.some(e => e.status === 'Processed'); %>
-    <tr>
-      <td><input class="form-check-input" type="checkbox" name="employeeIds" form="bulk-result-form" value="<%= r.employee.id %>" <%= selectable ? '' : 'disabled' %>></td>
-      <td><%= r.employee.fullName %></td><td><%= r.managerScore ?? '-' %></td><td><%= r.selfScore ?? '-' %></td><td><%= r.peerAverage ?? '-' %></td><td><b><%= r.finalScore ?? '-' %></b></td><td><%= statusLabel(status) %></td>
-      <td>
-        <% if (approved) { %>
-          <button class="btn btn-sm btn-secondary" disabled>معتمدة</button>
-        <% } else { %>
-          <form method="post" action="/reports/process" class="row g-1 mb-1">
-            <input type="hidden" name="cycleId" value="<%= cycleId %>"><input type="hidden" name="employeeId" value="<%= r.employee.id %>">
-            <div class="col"><input class="form-control form-control-sm" name="adjustedFinalScore" placeholder="نتيجة معدلة" value="<%= r.finalScore ?? '' %>"></div>
-            <div class="col"><input class="form-control form-control-sm" name="strengthsHighlights" placeholder="إنجازات" value="<%= r.adjustment?.strengthsHighlights || '' %>"></div>
-            <div class="col"><input class="form-control form-control-sm" name="improvementPoints" placeholder="تحسينات" value="<%= r.adjustment?.improvementPoints || '' %>"></div>
-            <div class="col-auto"><button class="btn btn-sm btn-outline-success">تمت المعالجة</button></div>
-          </form>
-          <form method="post" action="/reports/approve" class="d-inline">
-            <input type="hidden" name="cycleId" value="<%= cycleId %>"><input type="hidden" name="employeeId" value="<%= r.employee.id %>">
-            <button class="btn btn-sm btn-success">اعتماد</button>
-          </form>
-        <% } %>
-      </td>
-    </tr>
-  <% }) %></tbody>
-</table>
+  <table class="table table-striped align-middle">
+    <thead><tr><th>تحديد</th><th>الموظف</th><th>مدير</th><th>ذاتي</th><th>زملاء</th><th>النهائية</th><th>الحالة</th><th>اعتماد</th></tr></thead>
+    <tbody><% rows.forEach(r=>{ const approved = r.adjustment?.resultStatus === 'Approved'; const processable = !approved && r.evaluations.some(e => e.status === 'Processed'); %>
+      <tr>
+        <td><input class="form-check-input" type="checkbox" name="employeeIds" form="bulk-approve-form" value="<%= r.employee.id %>" <%= processable ? '' : 'disabled' %>></td>
+        <td><%= r.employee.fullName %></td><td><%= r.managerScore ?? '-' %></td><td><%= r.selfScore ?? '-' %></td><td><%= r.peerAverage ?? '-' %></td><td><b><%= r.finalScore ?? '-' %></b></td><td><%= r.adjustment?.resultStatus || 'غير معتمدة' %></td>
+        <td>
+          <% if (approved) { %>
+            <button class="btn btn-sm btn-secondary" disabled>معتمدة</button>
+          <% } else { %>
+            <form method="post" action="/reports/approve" class="row g-1">
+              <input type="hidden" name="cycleId" value="<%= cycleId %>"><input type="hidden" name="employeeId" value="<%= r.employee.id %>">
+              <div class="col"><input class="form-control form-control-sm" name="adjustedFinalScore" placeholder="نتيجة معدلة" value="<%= r.finalScore ?? '' %>"></div>
+              <div class="col"><input class="form-control form-control-sm" name="strengthsHighlights" placeholder="إنجازات"></div>
+              <div class="col"><input class="form-control form-control-sm" name="improvementPoints" placeholder="تحسينات"></div>
+              <div class="col-auto"><button class="btn btn-sm btn-success">اعتماد</button></div>
+            </form>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %></tbody>
+  </table>

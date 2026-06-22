@@ -19,7 +19,7 @@
       <div class="col-md-2"><select class="form-select js-template-department" aria-label="الدائرة المستهدفة"><option value="">كل الدوائر</option><% lookups.departments.forEach(d=>{ %><option value="<%= d.id %>"><%= d.name %></option><% }) %></select></div>
       <div class="col-md-2"><select class="form-select js-template-job" name="jobTitleId" aria-label="المسمى الوظيفي المستهدف"></select></div>
       <input type="hidden" class="js-template-link" name="departmentJobTitleId">
-      <div class="col-md-12"><label class="form-label">استهداف أسماء موظفين محددين</label><select class="form-select js-template-targets" name="targetEmployeeIds" multiple size="8" aria-label="الأسماء المستهدفة"></select><small class="text-muted">اختياري: بعد اختيار الدائرة والمسمى تظهر هنا أسماء الموظفين المطابقين، ويمكن تحديد اسم أو أكثر. إذا لم تحدد أي اسم سيطبّق النموذج على كل الموظفين المطابقين.</small></div>
+      <div class="col-md-12"><select class="form-select js-template-targets" name="targetEmployeeIds" multiple aria-label="الأسماء المستهدفة"></select><small class="text-muted">اختياري: اختر الدائرة ليتم عرض مسمياتها، ثم يمكن استهداف أكثر من اسم مطابق للنموذج.</small></div>
     </div>
     <hr><h2 class="h6">بنود سريعة</h2>
     <div class="row g-2"><% for(let i=0;i<4;i++){ %><div class="col-md-3"><input class="form-control" name="itemName" placeholder="اسم البند"></div><div class="col-md-3"><input class="form-control" name="itemDescription" placeholder="الوصف"></div><div class="col-md-2"><input class="form-control" name="itemWeight" placeholder="الوزن" value="25"></div><div class="col-md-2"><select class="form-select" name="itemKind"><option value="behavior">سلوكي</option><option value="task">مهمة</option></select></div><% } %></div>
@@ -47,7 +47,7 @@
           <div class="col-md-2"><select class="form-select js-template-job" name="jobTitleId"></select></div>
           <input type="hidden" class="js-template-link" name="departmentJobTitleId">
           <div class="col-md-1"><input class="form-control" name="tasksSectionWeight" value="<%= t.tasksSectionWeight %>"></div><div class="col-md-1"><input class="form-control" name="behaviorsSectionWeight" value="<%= t.behaviorsSectionWeight %>"></div>
-          <div class="col-md-12"><label class="form-label">استهداف أسماء موظفين محددين</label><select class="form-select js-template-targets" name="targetEmployeeIds" multiple size="8"></select><small class="text-muted">اتركها فارغة لتطبيق النموذج على كل الموظفين المطابقين للدائرة والمسمى.</small></div>
+          <div class="col-md-12"><select class="form-select js-template-targets" name="targetEmployeeIds" multiple></select></div>
           <% for(let i=0;i<Math.max(4,t.items.length);i++){ const item=t.items[i]||{}; %><div class="col-md-3"><input class="form-control" name="itemName" placeholder="اسم البند" value="<%= item.name || '' %>"></div><div class="col-md-3"><input class="form-control" name="itemDescription" placeholder="الوصف" value="<%= item.description || '' %>"></div><div class="col-md-2"><input class="form-control" name="itemWeight" placeholder="الوزن" value="<%= item.weight || 25 %>"></div><div class="col-md-2"><select class="form-select" name="itemKind"><option value="behavior" <%= !item.isTask?'selected':'' %>>سلوكي</option><option value="task" <%= item.isTask?'selected':'' %>>مهمة</option></select></div><% } %>
           <div class="col-md-2"><button class="btn btn-success w-100">حفظ التعديل</button></div>
         </form>
