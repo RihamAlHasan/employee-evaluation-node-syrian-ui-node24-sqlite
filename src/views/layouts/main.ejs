@@ -17,8 +17,10 @@
       <% if (user) { %>
         <nav class="side-nav">
           <a href="/" class="nav-pill">لوحة العمل</a>
-          <a href="/evaluations" class="nav-pill">تقييماتي</a>
-          <a href="/reports/me" class="nav-pill">نتيجتي</a>
+          <% if (user.role !== 'CentralEvaluationManager') { %>
+            <a href="/evaluations" class="nav-pill">تقييماتي</a>
+            <a href="/reports/me" class="nav-pill">نتيجتي</a>
+          <% } %>
           <% if (['Admin','CentralEvaluationManager','EntityEvaluationManager'].includes(user.role)) { %>
             <a href="/admin/employees" class="nav-pill">إدارة الموظفين</a>
             <a href="/admin/cycles" class="nav-pill">الدورات</a>
@@ -53,5 +55,6 @@
       </main>
     </section>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

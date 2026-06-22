@@ -17,6 +17,7 @@ class InMemoryStore {
   next(table) { return this.ids[table]++; }
   insert(table, row) { const r = { id: this.next(table), ...row }; this.tables[table].push(r); return r; }
   update(table, id, patch) { const row = this.findById(table, id); if (!row) throw new Error('السجل غير موجود'); Object.assign(row, patch); return row; }
+  delete(table, id) { const index = this.tables[table].findIndex(x => Number(x.id) === Number(id)); if (index === -1) throw new Error('السجل غير موجود'); return this.tables[table].splice(index, 1)[0]; }
   findById(table, id) { return this.tables[table].find(x => Number(x.id) === Number(id)); }
   all(table) { return [...this.tables[table]]; }
   log(user, actionType, description, entityName = '', entityId = null, snapshot = null) {
@@ -49,10 +50,15 @@ function createEvaluationService(store = new InMemoryStore()) {
     settings: () => s.findById('settings', 1),
     getDashboard,
     createEmployee,
+    updateEmployee,
+    createJobTitle,
     createCycle,
+    updateCycle,
     publishCycle,
     closeCycle,
     createTemplate,
+    updateTemplate,
+    deleteTemplate,
     assignPeer,
     availableTargets,
     startEvaluation,
@@ -91,11 +97,11 @@ function createEvaluationService(store = new InMemoryStore()) {
     const cycle = s.insert('cycles', { name: 'دورة تقييم تجريبية 2026', startDate: '2026-06-01', endDate: '2026-06-30', isActive: true, isStarted: true, isTesting: true, isHrApproved: false, isPublished: true, variationRate: 20, resultComment: '', grievanceStartDate: '2026-07-01', grievanceEndDate: '2026-07-15', hrApprovedAt: null });
     makeTemplate(cycle.id, djtHrEmployee.id, jtEmployee.id, TemplateType.ManagerToEmployee, 'نموذج المدير للموظف', true);
     makeTemplate(cycle.id, djtHrEmployee.id, jtEmployee.id, TemplateType.EmployeeSelf, 'نموذج التقييم الذاتي للموظف', true);
-    makeTemplate(cycle.id, djtHrManager.id, jtManager.id, TemplateType.EmployeeToManager, 'نموذج الموظف للمدير', false);
-    makeTemplate(cycle.id, djtHrEmployee.id, jtEmployee.id, TemplateType.EmployeeToEmployee, 'نموذج تقييم الزملاء', false);
+    makeTemplate(cycle.id, null, jtManager.id, TemplateType.EmployeeToManager, 'نموذج الموظف للمدير', false);
+    makeTemplate(cycle.id, null, jtEmployee.id, TemplateType.EmployeeToEmployee, 'نموذج تقييم الزملاء', false);
     makeTemplate(cycle.id, djtHrManager.id, jtManager.id, TemplateType.ManagerSelf, 'نموذج التقييم الذاتي للمدير', true);
-    makeTemplate(cycle.id, djtOrgManager.id, jtManager.id, TemplateType.ManagerToManager, 'نموذج مدير لمدير', false);
-    makeTemplate(cycle.id, djtHrManager.id, jtManager.id, TemplateType.DirectorGeneralToManager, 'نموذج مدير المديرية للمدير', true);
+    makeTemplate(cycle.id, null, jtManager.id, TemplateType.ManagerToManager, 'نموذج مدير لمدير', false);
+    makeDirectorTemplate(cycle.id, jtManager.id);
     s.insert('peerAssignments', { cycleId: cycle.id, evaluatorId: ahmad.id, evaluateeId: laila.id });
     s.insert('peerAssignments', { cycleId: cycle.id, evaluatorId: laila.id, evaluateeId: ahmad.id });
     s.insert('peerAssignments', { cycleId: cycle.id, evaluatorId: hrManager.id, evaluateeId: orgManager.id });
@@ -108,7 +114,7 @@ function createEvaluationService(store = new InMemoryStore()) {
   }
   function makeTemplate(cycleId, departmentJobTitleId, jobTitleId, type, name, withTasks) {
     const w = sectionWeightsFor(type);
-    const t = s.insert('templates', { name, cycleId, jobTitleId, departmentJobTitleId, targetEmployeeId: null, tasksSectionWeight: w.tasks, behaviorsSectionWeight: w.behaviors, type });
+    const t = s.insert('templates', { name, cycleId, jobTitleId, departmentJobTitleId, targetEmployeeId: null, targetEmployeeIds: [], tasksSectionWeight: w.tasks, behaviorsSectionWeight: w.behaviors, type });
     if (withTasks) {
       s.insert('templateItems', { evaluationTemplateId: t.id, isTask: true, name: 'إنجاز المهام الأساسية', description: 'إنجاز المهام وفق الخطة', weight: 50 });
       s.insert('templateItems', { evaluationTemplateId: t.id, isTask: true, name: 'جودة المخرجات', description: 'الدقة والالتزام بالمعايير', weight: 50 });
@@ -116,6 +122,20 @@ function createEvaluationService(store = new InMemoryStore()) {
     s.insert('templateItems', { evaluationTemplateId: t.id, isTask: false, name: 'التعاون', description: 'العمل بروح الفريق', weight: 35 });
     s.insert('templateItems', { evaluationTemplateId: t.id, isTask: false, name: 'الالتزام', description: 'الانضباط واحترام الوقت', weight: 35 });
     s.insert('templateItems', { evaluationTemplateId: t.id, isTask: false, name: 'التطوير والتحسين', description: 'اقتراح حلول وتحسينات', weight: 30 });
+    return t;
+  }
+  function makeDirectorTemplate(cycleId, jobTitleId) {
+    const w = sectionWeightsFor(TemplateType.DirectorGeneralToManager);
+    const t = s.insert('templates', { name: 'نموذج تقييم الإدارة', cycleId, jobTitleId, departmentJobTitleId: null, targetEmployeeId: null, targetEmployeeIds: [], tasksSectionWeight: w.tasks, behaviorsSectionWeight: w.behaviors, type: TemplateType.DirectorGeneralToManager });
+    for (let i = 1; i <= 7; i++) s.insert('templateItems', { evaluationTemplateId: t.id, isTask: true, name: `المهام والمسؤوليات ${i}`, description: 'مؤشر الأداء', weight: i === 7 ? 10 : 15 });
+    const behaviors = [
+      'قيادة وتمكين الفريق',
+      'التعاون المؤسسي',
+      'المرونة الوظيفية في الطوارئ',
+      'المبادرة وتعزيز الابتكار',
+      'التواصل والمتابعة الفعالة'
+    ];
+    behaviors.forEach(name => s.insert('templateItems', { evaluationTemplateId: t.id, isTask: false, name, description: '', weight: 20 }));
     return t;
   }
 
@@ -139,20 +159,82 @@ function createEvaluationService(store = new InMemoryStore()) {
     s.log(user, 'CreateEmployee', `إضافة موظف: ${row.fullName}`, 'Employee', row.id, row);
     return publicEmployee(row);
   }
+  async function updateEmployee(user, id, data) {
+    assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager, UserRole.EntityEvaluationManager]);
+    const patch = { fullName: data.fullName, nationalId: data.nationalId, employeeCode: data.employeeCode || data.nationalId, userName: data.userName || data.nationalId, jobTitleId: Number(data.jobTitleId), departmentId: Number(data.departmentId), departmentJobTitleId: data.departmentJobTitleId ? Number(data.departmentJobTitleId) : null, role: data.role || UserRole.Employee, managerId: data.managerId ? Number(data.managerId) : null, isActive: data.isActive !== 'false' };
+    const row = s.update('employees', id, patch);
+    s.log(user, 'UpdateEmployee', `تعديل موظف: ${row.fullName}`, 'Employee', row.id, row);
+    return publicEmployee(row);
+  }
+  function createJobTitle(user, data) {
+    assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]);
+    const jobTitle = s.insert('jobTitles', { name: data.name, userName: data.userName || '', departmentId: data.departmentId ? Number(data.departmentId) : null, isActive: true });
+    if (data.departmentId) s.insert('departmentJobTitles', { departmentId: Number(data.departmentId), jobTitleId: jobTitle.id, isManagerTitle: !!data.isManagerTitle, isActive: true });
+    s.log(user, 'CreateJobTitle', `إضافة مسمى وظيفي: ${jobTitle.name}`, 'JobTitle', jobTitle.id, jobTitle);
+    return jobTitle;
+  }
   function createCycle(user, data) {
     assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]);
     const row = s.insert('cycles', { name: data.name, startDate: data.startDate, endDate: data.endDate, isActive: !!data.isActive, isStarted: !!data.isStarted, isTesting: !!data.isTesting, isHrApproved: false, isPublished: false, variationRate: Number(data.variationRate || 20), resultComment: data.resultComment || '', grievanceStartDate: data.grievanceStartDate || null, grievanceEndDate: data.grievanceEndDate || null, hrApprovedAt: null });
     s.log(user, 'CreateCycle', `إنشاء دورة: ${row.name}`, 'EvaluationCycle', row.id, row);
     return row;
   }
-  function publishCycle(user, cycleId) { assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]); const row = s.update('cycles', cycleId, { isPublished: true, isStarted: true, isActive: true }); s.log(user, 'PublishCycle', `نشر دورة: ${row.name}`, 'EvaluationCycle', row.id, row); return row; }
+  function updateCycle(user, cycleId, data) {
+    assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]);
+    const existing = s.findById('cycles', cycleId);
+    if (!existing) throw new Error('الدورة غير موجودة');
+    if (existing.isPublished && data.startDate && data.startDate !== existing.startDate) throw new Error('لا يمكن تعديل تاريخ بدء الدورة بعد النشر');
+    const row = s.update('cycles', cycleId, { name: data.name, startDate: existing.isPublished ? existing.startDate : data.startDate, endDate: data.endDate, grievanceStartDate: data.grievanceStartDate || null, grievanceEndDate: data.grievanceEndDate || null, variationRate: Number(data.variationRate || existing.variationRate || 20), resultComment: data.resultComment || existing.resultComment || '' });
+    s.log(user, 'UpdateCycle', `تعديل دورة: ${row.name}`, 'EvaluationCycle', row.id, row);
+    return row;
+  }
+  function publishCycle(user, cycleId) {
+    assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]);
+    const existing = s.findById('cycles', cycleId);
+    if (!existing) throw new Error('الدورة غير موجودة');
+    if (existing.isPublished) throw new Error('الدورة منشورة مسبقاً');
+    const row = s.update('cycles', cycleId, { isPublished: true, isStarted: true, isActive: true });
+    s.log(user, 'PublishCycle', `نشر دورة: ${row.name}`, 'EvaluationCycle', row.id, row);
+    return row;
+  }
   function closeCycle(user, cycleId) { assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]); const row = s.update('cycles', cycleId, { isActive: false }); s.log(user, 'CloseCycle', `إغلاق دورة: ${row.name}`, 'EvaluationCycle', row.id, row); return row; }
   function createTemplate(user, data) {
     assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]);
     const w = sectionWeightsFor(data.type);
-    const row = s.insert('templates', { name: data.name, cycleId: Number(data.cycleId), jobTitleId: Number(data.jobTitleId), departmentJobTitleId: data.departmentJobTitleId ? Number(data.departmentJobTitleId) : null, targetEmployeeId: data.targetEmployeeId ? Number(data.targetEmployeeId) : null, tasksSectionWeight: Number(data.tasksSectionWeight ?? w.tasks), behaviorsSectionWeight: Number(data.behaviorsSectionWeight ?? w.behaviors), type: data.type });
+    const cycleIds = normalizeIds(data.cycleIds || data.cycleId);
+    let first = null;
+    for (const cycleId of cycleIds) {
+      const row = s.insert('templates', { name: data.name, cycleId, jobTitleId: data.jobTitleId ? Number(data.jobTitleId) : null, departmentJobTitleId: data.departmentJobTitleId ? Number(data.departmentJobTitleId) : null, targetEmployeeId: null, targetEmployeeIds: normalizeIds(data.targetEmployeeIds || data.targetEmployeeId), tasksSectionWeight: Number(data.tasksSectionWeight ?? w.tasks), behaviorsSectionWeight: Number(data.behaviorsSectionWeight ?? w.behaviors), type: data.type });
+      for (const item of (data.items || [])) s.insert('templateItems', { evaluationTemplateId: row.id, isTask: !!item.isTask, name: item.name, description: item.description || '', weight: Number(item.weight) });
+      first ||= row;
+      s.log(user, 'CreateTemplate', `إنشاء نموذج: ${row.name}`, 'EvaluationTemplate', row.id, row);
+    }
+    return first;
+  }
+  function updateTemplate(user, templateId, data) {
+    assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]);
+    const template = s.findById('templates', templateId);
+    if (!template) throw new Error('النموذج غير موجود');
+    const cycle = s.findById('cycles', template.cycleId);
+    if (cycle?.isPublished) throw new Error('لا يمكن تعديل النموذج بعد نشر دورته');
+    const w = sectionWeightsFor(data.type || template.type);
+    const row = s.update('templates', templateId, { name: data.name, type: data.type, jobTitleId: data.jobTitleId ? Number(data.jobTitleId) : null, departmentJobTitleId: data.departmentJobTitleId ? Number(data.departmentJobTitleId) : null, targetEmployeeId: null, targetEmployeeIds: normalizeIds(data.targetEmployeeIds || data.targetEmployeeId), tasksSectionWeight: Number(data.tasksSectionWeight ?? w.tasks), behaviorsSectionWeight: Number(data.behaviorsSectionWeight ?? w.behaviors) });
+    s.tables.templateItems = s.tables.templateItems.filter(i => Number(i.evaluationTemplateId) !== Number(templateId));
     for (const item of (data.items || [])) s.insert('templateItems', { evaluationTemplateId: row.id, isTask: !!item.isTask, name: item.name, description: item.description || '', weight: Number(item.weight) });
-    s.log(user, 'CreateTemplate', `إنشاء نموذج: ${row.name}`, 'EvaluationTemplate', row.id, row);
+    s.persist?.();
+    s.log(user, 'UpdateTemplate', `تعديل نموذج: ${row.name}`, 'EvaluationTemplate', row.id, row);
+    return row;
+  }
+  function deleteTemplate(user, templateId) {
+    assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]);
+    const template = s.findById('templates', templateId);
+    if (!template) throw new Error('النموذج غير موجود');
+    const cycle = s.findById('cycles', template.cycleId);
+    if (cycle?.isPublished) throw new Error('لا يمكن حذف النموذج بعد نشر دورته');
+    s.tables.templateItems = s.tables.templateItems.filter(i => Number(i.evaluationTemplateId) !== Number(templateId));
+    const row = s.delete('templates', templateId);
+    s.persist?.();
+    s.log(user, 'DeleteTemplate', `حذف نموذج: ${row.name}`, 'EvaluationTemplate', row.id, row);
     return row;
   }
   function assignPeer(user, cycleId, evaluatorId, evaluateeId) {
@@ -191,7 +273,13 @@ function createEvaluationService(store = new InMemoryStore()) {
     return targets;
   }
   function findTemplateFor(cycleId, evaluatee, type) {
-    return s.all('templates').find(t => t.cycleId == cycleId && t.type === type && (t.targetEmployeeId == null || t.targetEmployeeId == evaluatee.id) && (!t.departmentJobTitleId || t.departmentJobTitleId == evaluatee.departmentJobTitleId || t.jobTitleId == evaluatee.jobTitleId));
+    return s.all('templates').find(t => {
+      const targets = normalizeIds(t.targetEmployeeIds || t.targetEmployeeId);
+      const targetMatches = !targets.length || targets.includes(Number(evaluatee.id));
+      const scopeMatches = !t.departmentJobTitleId || t.departmentJobTitleId == evaluatee.departmentJobTitleId || t.jobTitleId == evaluatee.jobTitleId;
+      const jobMatches = !t.jobTitleId || t.jobTitleId == evaluatee.jobTitleId;
+      return t.cycleId == cycleId && t.type === type && targetMatches && scopeMatches && jobMatches;
+    });
   }
   function startEvaluation(user, cycleId, evaluateeId, type) {
     const target = availableTargets(user, cycleId).find(t => t.evaluatee.id == evaluateeId && t.type === type);
@@ -227,6 +315,7 @@ function createEvaluationService(store = new InMemoryStore()) {
     assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager]);
     const current = resultForEmployee(user, cycleId, employeeId);
     const existing = s.all('resultAdjustments').find(r => r.cycleId == cycleId && r.employeeId == employeeId);
+    if (existing?.resultStatus === EvaluationStatus.Approved) throw new Error('تم اعتماد هذه النتيجة مسبقاً');
     const patch = { adjustedFinalScore: data.adjustedFinalScore !== undefined && data.adjustedFinalScore !== '' ? Number(data.adjustedFinalScore) : current.finalScore, adjustmentNotes: data.adjustmentNotes || '', strengthsHighlights: data.strengthsHighlights || '', improvementPoints: data.improvementPoints || '', resultStatus: EvaluationStatus.Approved, updatedById: user.id, updatedAt: new Date().toISOString() };
     const row = existing ? s.update('resultAdjustments', existing.id, patch) : s.insert('resultAdjustments', { cycleId: Number(cycleId), employeeId: Number(employeeId), createdAt: new Date().toISOString(), ...patch });
     s.log(user, 'ApproveResult', `اعتماد نتيجة ${current.employee.fullName}`, 'EvaluationResultAdjustment', row.id, row);
@@ -253,6 +342,11 @@ function createEvaluationService(store = new InMemoryStore()) {
   function reportRows(user, cycleId) {
     assertRole(user, [UserRole.Admin, UserRole.CentralEvaluationManager, UserRole.EntityEvaluationManager]);
     return s.all('employees').filter(e => e.role === UserRole.Employee || e.role === UserRole.DepartmentManager).map(e => resultForEmployee(user, cycleId, e.id));
+  }
+  function normalizeIds(value) {
+    if (value === undefined || value === null || value === '') return [];
+    const values = Array.isArray(value) ? value : [value];
+    return values.map(Number).filter(Number.isFinite);
   }
 }
 

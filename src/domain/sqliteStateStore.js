@@ -54,6 +54,7 @@ class SQLiteStateStore extends InMemoryStore {
   reset() { super.reset(); this.persist?.(); }
   insert(table, row) { const r = super.insert(table, row); this.persist(); return r; }
   update(table, id, patch) { const r = super.update(table, id, patch); this.persist(); return r; }
+  delete(table, id) { const r = super.delete(table, id); this.persist(); return r; }
 }
 
 module.exports = { SQLiteStateStore };
