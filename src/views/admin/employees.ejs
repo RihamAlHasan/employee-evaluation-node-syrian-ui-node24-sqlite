@@ -1,14 +1,10 @@
 <%
   const departmentName = (id) => lookups.departments.find(d => Number(d.id) === Number(id))?.name || '-';
   const jobTitleName = (id) => lookups.jobTitles.find(j => Number(j.id) === Number(id))?.name || '-';
-  const linkLabel = (linkId) => {
-    const link = lookups.departmentJobTitles.find(dj => Number(dj.id) === Number(linkId));
-    if (!link) return 'بدون ربط بمسمى ضمن دائرة';
-    return `${departmentName(link.departmentId)} — ${jobTitleName(link.jobTitleId)}${link.isManagerTitle ? ' (مسمى إداري)' : ''}`;
-  };
   const managerLabel = (manager) => `${manager.fullName} — ${jobTitleName(manager.jobTitleId)} / ${departmentName(manager.departmentId)}`;
 %>
 <h1 class="h4">إدارة الموظفين</h1>
+<div class="alert alert-info">تم تحميل بيانات الموظفين الحالية كبيانات مرجعية. يمكن تعديلها لاحقاً من لوحة الموظفين أدناه.</div>
 <div class="card p-3 mb-4">
   <form method="post" class="row g-2 js-dependent-form">
     <div class="col-md-3"><input class="form-control" name="fullName" placeholder="الاسم الكامل" required></div>
@@ -27,11 +23,25 @@
     <div class="col-md-2"><button class="btn btn-primary w-100">إضافة</button></div>
   </form>
 </div>
-<table class="table table-striped">
-  <thead><tr><th>#</th><th>الاسم</th><th>الرقم الوطني</th><th>الدور</th><th>الدائرة</th><th>المسمى</th><th>المدير المباشر</th></tr></thead>
+<table class="table table-striped align-middle">
+  <thead><tr><th>#</th><th>الكود</th><th>الاسم</th><th>الرقم الوطني</th><th>الدور</th><th>الدائرة</th><th>المسمى</th><th>المدير المباشر</th><th>تعديل</th></tr></thead>
   <tbody>
     <% employees.forEach(e=>{ const manager = employees.find(m => Number(m.id) === Number(e.managerId)); %>
-      <tr><td><%= e.id %></td><td><%= e.fullName %></td><td><%= e.nationalId %></td><td><%= e.role %></td><td><%= departmentName(e.departmentId) %></td><td><%= jobTitleName(e.jobTitleId) %></td><td><%= manager ? manager.fullName : '-' %></td></tr>
+      <tr><td><%= e.id %></td><td><%= e.employeeCode || '-' %></td><td><%= e.fullName %></td><td><%= e.nationalId %></td><td><%= e.role %></td><td><%= departmentName(e.departmentId) %></td><td><%= jobTitleName(e.jobTitleId) %></td><td><%= manager ? manager.fullName : '-' %></td><td><button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#employee-<%= e.id %>">تعديل</button></td></tr>
+      <tr class="collapse" id="employee-<%= e.id %>"><td colspan="9">
+        <form method="post" action="/admin/employees/<%= e.id %>" class="row g-2 js-dependent-form" data-job-title="<%= e.jobTitleId || '' %>" data-manager="<%= e.managerId || '' %>">
+          <div class="col-md-3"><input class="form-control" name="fullName" value="<%= e.fullName %>" required></div>
+          <div class="col-md-2"><input class="form-control" name="nationalId" value="<%= e.nationalId %>" required></div>
+          <div class="col-md-2"><input class="form-control" name="employeeCode" value="<%= e.employeeCode || '' %>"></div>
+          <div class="col-md-2"><select class="form-select" name="role"><% Object.values(roles).forEach(r=>{ %><option value="<%= r %>" <%= r===e.role?'selected':'' %>><%= r %></option><% }) %></select></div>
+          <div class="col-md-3"><select class="form-select js-department" name="departmentId"><% lookups.departments.forEach(d=>{ %><option value="<%= d.id %>" <%= Number(d.id)===Number(e.departmentId)?'selected':'' %>><%= d.name %></option><% }) %></select></div>
+          <div class="col-md-3"><select class="form-select js-job-title" name="jobTitleId"></select></div>
+          <input type="hidden" class="js-department-job-title" name="departmentJobTitleId" value="<%= e.departmentJobTitleId || '' %>">
+          <div class="col-md-3"><select class="form-select js-manager" name="managerId"><option value="">بدون مدير مباشر</option></select></div>
+          <div class="col-md-2"><select class="form-select" name="isActive"><option value="true" <%= e.isActive?'selected':'' %>>فعال</option><option value="false" <%= !e.isActive?'selected':'' %>>غير فعال</option></select></div>
+          <div class="col-md-2"><button class="btn btn-success w-100">حفظ</button></div>
+        </form>
+      </td></tr>
     <% }) %>
   </tbody>
 </table>

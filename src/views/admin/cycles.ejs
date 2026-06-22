@@ -1,3 +1,6 @@
+<%
+  const cycleStatus = (c) => !c.isPublished ? 'لم تبدأ' : (c.isActive ? 'منشورة' : 'مغلقة');
+%>
 <h1 class="h4">الدورات التقييمية</h1>
 <div class="card p-3 mb-3">
   <h2 class="h6">إضافة دورة</h2>
@@ -11,10 +14,10 @@
   </form>
 </div>
 <table class="table align-middle">
-  <thead><tr><th>الاسم</th><th>الفترة</th><th>منشورة</th><th>نشطة</th><th>إجراءات</th></tr></thead>
+  <thead><tr><th>الاسم</th><th>الفترة</th><th>حالة الدورة</th><th>إجراءات</th></tr></thead>
   <tbody><% cycles.forEach(c=>{ %>
     <tr>
-      <td><%= c.name %></td><td><%= c.startDate %> - <%= c.endDate %></td><td><%= c.isPublished ? 'نعم':'لا' %></td><td><%= c.isActive ? 'نعم':'لا' %></td>
+      <td><%= c.name %></td><td><%= c.startDate %> - <%= c.endDate %></td><td><%= cycleStatus(c) %></td>
       <td>
         <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#cycle-<%= c.id %>" type="button">تعديل التواريخ</button>
         <% if (!c.isPublished) { %><form method="post" action="/admin/cycles/<%= c.id %>/publish" class="d-inline"><button class="btn btn-sm btn-success">نشر</button></form><% } else { %><button class="btn btn-sm btn-secondary" disabled>منشورة</button><% } %>
