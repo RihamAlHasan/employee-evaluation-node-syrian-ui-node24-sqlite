@@ -14,12 +14,7 @@
     <div class="col-md-3"><select class="form-select js-department" name="departmentId" aria-label="الدائرة"><% lookups.departments.forEach(d=>{ %><option value="<%= d.id %>"><%= d.name %></option><% }) %></select></div>
     <div class="col-md-3"><select class="form-select js-job-title" name="jobTitleId" aria-label="المسمى الوظيفي"></select></div>
     <input type="hidden" class="js-department-job-title" name="departmentJobTitleId">
-    <div class="col-md-3">
-      <select class="form-select js-manager" name="managerId" aria-label="المدير المباشر">
-        <option value="">بدون مدير مباشر</option>
-        <% employees.forEach(m=>{ %><option value="<%= m.id %>"><%= managerLabel(m) %></option><% }) %>
-      </select>
-    </div>
+    <div class="col-md-3"><select class="form-select js-manager" name="managerId" aria-label="المدير المباشر"><option value="">بدون مدير مباشر</option><% employees.forEach(m=>{ %><option value="<%= m.id %>"><%= managerLabel(m) %></option><% }) %></select></div>
     <div class="col-md-2"><button class="btn btn-primary w-100">إضافة</button></div>
   </form>
 </div>

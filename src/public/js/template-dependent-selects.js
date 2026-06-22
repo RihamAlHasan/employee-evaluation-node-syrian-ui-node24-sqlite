@@ -20,7 +20,7 @@
     if (targets) {
       const selected = (form.dataset.targets || '').split(',').filter(Boolean).map(Number);
       const available = data.employees.filter(e => (!dept.value || Number(e.departmentId) === Number(dept.value)) && (!job.value || Number(e.jobTitleId) === Number(job.value)));
-      targets.innerHTML = available.map(e => `<option value="${e.id}" ${selected.includes(Number(e.id)) ? 'selected' : ''}>${e.fullName}</option>`).join('');
+      targets.innerHTML = available.map(e => { const deptName = data.departments.find(d => Number(d.id) === Number(e.departmentId))?.name || '-'; const jobName = jobById(e.jobTitleId)?.name || '-'; return `<option value="${e.id}" ${selected.includes(Number(e.id)) ? 'selected' : ''}>${e.fullName} — ${deptName} / ${jobName}</option>`; }).join('');
     }
   };
   document.querySelectorAll('.js-template-form').forEach(form => {
