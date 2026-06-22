@@ -70,3 +70,21 @@ test('central manager can update direct manager and create department job titles
   assert.equal(updated.managerId, director.id);
   assert.equal(updated.jobTitleId, title.id);
 });
+
+test('published cycles keep start date editable fields locked but allow other dates', async () => {
+  const { svc, central, cycle } = await fixture();
+  assert.throws(() => svc.updateCycle(central, cycle.id, { ...cycle, startDate: '2026-06-02' }), /تاريخ بدء/);
+  const updated = svc.updateCycle(central, cycle.id, { ...cycle, endDate: '2026-07-05', grievanceEndDate: '2026-07-20' });
+  assert.equal(updated.startDate, cycle.startDate);
+  assert.equal(updated.endDate, '2026-07-05');
+  assert.equal(updated.grievanceEndDate, '2026-07-20');
+});
+
+test('published cycles and approved results cannot be published or approved twice', async () => {
+  const { svc, central, hrManager, ahmad, cycle } = await fixture();
+  assert.throws(() => svc.publishCycle(central, cycle.id), /منشورة/);
+  submitAll90(svc, hrManager, cycle.id, ahmad.id, TemplateType.ManagerToEmployee);
+  const approved = svc.approveResult(central, cycle.id, ahmad.id, {});
+  assert.equal(approved.resultStatus, EvaluationStatus.Approved);
+  assert.throws(() => svc.approveResult(central, cycle.id, ahmad.id, {}), /مسبق/);
+});
