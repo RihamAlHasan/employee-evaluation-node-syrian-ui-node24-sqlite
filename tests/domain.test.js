@@ -118,3 +118,16 @@ test('central manager can process a result before approval and employees only se
   assert.equal(approved.resultStatus, EvaluationStatus.Approved);
   assert.equal(svc.resultForEmployee(ahmad, cycle.id, ahmad.id).visible, true);
 });
+
+test('reference employee roster is seeded with managers and editable lookup links', async () => {
+  const { svc } = await fixture();
+  const employees = svc.employees();
+  const leen = employees.find(e => e.employeeCode === 'HO-Cc-0019');
+  assert.ok(leen);
+  assert.equal(leen.fullName, 'لين رفيق نوريه');
+  assert.equal(leen.hireDate, '1998-10-10');
+  const hani = employees.find(e => e.fullName === 'هاني عفيف متري');
+  assert.equal(leen.managerId, hani.id);
+  const director = employees.find(e => e.employeeCode === 'HO-B-0272');
+  assert.equal(director.role, UserRole.DirectorGeneral);
+});
