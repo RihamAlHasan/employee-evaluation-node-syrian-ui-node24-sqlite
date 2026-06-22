@@ -15,5 +15,5 @@ if ((process.env.DB_PROVIDER || 'sqlite').toLowerCase() === 'sqlite') {
 }
 const service = createEvaluationService(store);
 let seeded = store.all('employees').length > 0;
-async function ensureSeeded() { if (!seeded) { await service.seedDemo(); seeded = true; } return service; }
+async function ensureSeeded() { if (!seeded) { await service.seedDemo(); seeded = true; } else { await service.ensureReferenceEmployees(); } return service; }
 module.exports = { service, ensureSeeded };
