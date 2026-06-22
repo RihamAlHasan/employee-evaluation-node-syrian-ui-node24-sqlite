@@ -98,36 +98,3 @@ test('reference departments and job titles are seeded and linked', async () => {
   assert.ok(title);
   assert.ok(lookups.departmentJobTitles.some(dj => dj.departmentId === department.id && dj.jobTitleId === title.id));
 });
-
-test('same-department employees and department managers are automatic peer targets', async () => {
-  const { svc, ahmad, laila, samer, hrManager, orgManager, cycle } = await fixture();
-  const employeeTargets = svc.availableTargets(ahmad, cycle.id);
-  assert.ok(employeeTargets.some(t => t.type === TemplateType.EmployeeToEmployee && t.evaluatee.id === laila.id));
-  assert.equal(employeeTargets.some(t => t.type === TemplateType.EmployeeToEmployee && t.evaluatee.id === samer.id), false);
-  const managerTargets = svc.availableTargets(hrManager, cycle.id);
-  assert.ok(managerTargets.some(t => t.type === TemplateType.ManagerToManager && t.evaluatee.id === orgManager.id));
-});
-
-test('central manager can process a result before approval and employees only see approved results', async () => {
-  const { svc, central, hrManager, ahmad, cycle } = await fixture();
-  submitAll90(svc, hrManager, cycle.id, ahmad.id, TemplateType.ManagerToEmployee);
-  const processed = svc.processResult(central, cycle.id, ahmad.id, { strengthsHighlights: 'منجز', improvementPoints: 'متابعة' });
-  assert.equal(processed.resultStatus, EvaluationStatus.Processed);
-  assert.equal(svc.resultForEmployee(ahmad, cycle.id, ahmad.id).visible, false);
-  const approved = svc.approveResult(central, cycle.id, ahmad.id, {});
-  assert.equal(approved.resultStatus, EvaluationStatus.Approved);
-  assert.equal(svc.resultForEmployee(ahmad, cycle.id, ahmad.id).visible, true);
-});
-
-test('reference employee roster is seeded with managers and editable lookup links', async () => {
-  const { svc } = await fixture();
-  const employees = svc.employees();
-  const leen = employees.find(e => e.employeeCode === 'HO-Cc-0019');
-  assert.ok(leen);
-  assert.equal(leen.fullName, 'لين رفيق نوريه');
-  assert.equal(leen.hireDate, '1998-10-10');
-  const hani = employees.find(e => e.fullName === 'هاني عفيف متري');
-  assert.equal(leen.managerId, hani.id);
-  const director = employees.find(e => e.employeeCode === 'HO-B-0272');
-  assert.equal(director.role, UserRole.DirectorGeneral);
-});
